@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Список друзей ВКонтакте</title>
+  <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+  <style>
+    table {
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    table, th, td {
+      border: 1px solid #333;
+      padding: 8px;
+    }
+    th {
+      background-color: #1d6f42;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <h1>Список друзей VK:</h1>
+  <button id="sortButton">Сортировать по имени (A-Z)</button>
+  <div id="output">Загрузка данных...</div>
+  <script>
+    let friendsList = [];
+    let ascending = true;
+    function renderTable(friends) {
+      let html = "<table>";
+      html += "<tr><th>№</th><th>ID</th><th>Имя</th><th>Фамилия</th><th>Дата рождения</th></tr>";
+      let num = 1;
+      friends.forEach(function(friend) {
+        html += "<tr>";
+        html += "<td>" + num + "</td>";
+        html += "<td>" + friend.id + "</td>";
+        html += "<td>" + friend.first_name + "</td>";
+        html += "<td>" + friend.last_name + "</td>";
+        html += "<td>" + (friend.bdate ? friend.bdate : "Не указано") + "</td>";
+        html += "</tr>";
+        num++;
+      });
+      html += "</table>";
+      $('#output').html(html);
+    }
+    $.getJSON({
+      url: "https://api.vk.com/method/friends.get?access_token=f7ba1332f7ba1332f7ba133216f493e8e1ff7baf7ba1332900ffe97313e56a12e68865b&user_id=209723107&fields=bdate&v=5.199",
+      jsonp: "callback",
+      dataType: "jsonp"
+    }).done(function (data) {
+      friendsList = data.response.items;
+      friendsList.sort(function(a, b) {
+          return a.first_name.localeCompare(b.first_name);
+        });
+      renderTable(friendsList);
+
+    });
+
+    $('#sortButton').on('click', function() {
+      if (ascending) {
+        friendsList.sort(function(a, b) {
+          return a.first_name.localeCompare(b.first_name);
+        });
+        $(this).text("Сортировать по имени (Z-A)");
+      } else {
+        friendsList.sort(function(a, b) {
+          return b.first_name.localeCompare(a.first_name);
+        });
+        $(this).text("Сортировать по имени (A-Z)");
+      }
+      ascending = !ascending;
+      renderTable(friendsList);
+    });
+    </script>
+</body>
+</html>

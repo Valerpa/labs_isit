@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Лаба 6</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .control-panel {
+            background: #f5f5f5;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .limit-group {
+            margin-bottom: 25px;
+        }
+        label {
+            font-size: 16px;
+            color: #333;
+            margin-right: 10px;
+        }
+        input[type="number"] {
+            width: 80px;
+            padding: 8px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        button {
+            padding: 12px 25px;
+            font-size: 16px;
+            background: #0077ff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            background: #0055cc;
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+        }
+        .result-container {
+            margin-top: 25px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .result-content {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #eee;
+            max-height: 400px;
+            line-height: 2;
+            overflow-y: auto;
+        }
+    </style>
+
+    https://oauth.vk.com/authorize?response_type=token&client_id=53151156&redirect_uri=https://oauth.vk.com/blank.html&scope=wall photos status friends groups
+    <script>
+        const ACCESS_TOKEN = 'vk1.a.ldkPbetnyngkHc9sYVR_hikSczts7zon9kOWNxehAD2OyYwl38cUtvU188yDZXFt3CJjvL0DJ8jdAUkqvRffYPvF1e3ocQ9adxsUMz_nIvvZpPQvOfvWKVhiW47qoAl9TSoEJ8JPtTSyo_AVTDnC72NZsCB_IejY7v-Szq50Ep9r1qZGSmMLg3W06jtCYdsYIqEwVJziJOwv5CgeW0xt2Q';
+        const API_VERSION = '5.119';
+        let limit = 5;
+
+        function setLimit() {
+            const value = document.getElementById('limitInput').value;
+            limit = value > 0 ? value : 5;
+        }
+
+        // Общая функция для вывода результатов
+        function showResult(content, isError = false) {
+            const resultDiv = document.getElementById('resultContainer');
+            resultDiv.innerHTML = `
+                <div class="result-content" style="color: ${isError ? 'red' : 'inherit'}">
+                    ${content}
+                </div>
+            `;
+            resultDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 1. Сбор ID друзей участников группы
+        async function getGroupFriends() {
+            const groupId = prompt('Введите ID группы:');
+            if (!groupId) return;
+            const startTime = new Date().getTime();
+            try {
+                const members = await vkApiCall('groups.getMembers', {
+                    group_id: groupId,
+                    count: limit
+                });
+
+                const friends = await Promise.all(
+                    members.items.map(userId =>
+                        vkApiCall('friends.get', {
+                            user_id: userId,
+                            fields: 'first_name, last_name'
+                        })
+                    )
+                );
+
+                const result = friends.flatMap(f => f.items);
+                showResult(`ID друзей участников группы:\n${result.slice(0, limit).map(f => `ID: ${f.id} Имя: ${f.first_name} ${f.last_name}`).join('\n')}`);
+            } catch (e) {
+                showResult(`Ошибка: ${e.message}`, true);
+            } finally {
+                const endTime = new Date().getTime(); // Конец измерения времени
+                console.log(`Время выполнения (асинхронная версия): ${endTime - startTime} мс`);
+            }
+        }
+
+        // 2. Лайк последним онлайн друзьям
+        async function likeTopPosts() {
+            try {
+                const friends = await vkApiCall('friends.get', {
+                    fields: 'last_seen',
+                    count: limit
+                });
+
+                const sorted = friends.items.sort((a, b) =>
+                    b.last_seen.time - a.last_seen.time
+                ).slice(0, limit);
+
+                for (const friend of sorted) {
+                    const post = await vkApiCall('wall.get', {
+                        owner_id: friend.id,
+                        count: 1
+                    });
+                    if (post.items[0]) {
+                        await vkApiCall('likes.add', {
+                            type: 'post',
+                            owner_id: friend.id,
+                            item_id: post.items[0].id
+                        });
+                    }
+                }
+                showResult('Лайки успешно поставлены: \n' +
+                    sorted.map(f => `${f.first_name} ${f.last_name}`).join('\n'));
+            } catch (e) {
+                showResult(`Ошибка: ${e.message}`, true);
+            }
+        }
+
+        // 3. Создание поста с группами
+        async function createGroupsPost() {
+            try {
+                const groups = await vkApiCall('groups.get', {
+                    extended: 1,
+                    count: limit,
+                    fields: "members_count"
+                });
+
+                const text = groups.items.map(g =>
+                    `${g.name} (${g.members_count} участников)`
+                ).join('\n');
+
+                await vkApiCall('wall.post', {
+                    message: `Мои группы:\n${text}`
+                });
+                showResult(`Пост успешно создан!\nСодержание:\n${text}`);
+            } catch (e) {
+                showResult(`Ошибка: ${e.message}`, true);
+            }
+        }
+
+        // 4. Максимальное количество друзей
+        async function findMaxFriends() {
+            try {
+                // Получаем друзей с расширенной информацией
+                const friends = await vkApiCall('friends.get', {
+                    count: limit,
+                    fields: 'first_name,last_name' // Добавляем запрос имен
+                });
+
+                // Получаем количество друзей для каждого
+                const extendedFriends = await Promise.all(
+                    friends.items.map(user =>
+                        vkApiCall('friends.get', {user_id: user.id})
+                ));
+
+                // Создаем массив объектов с полной информацией
+                const friendsData = friends.items.map((user, index) => ({
+                    id: user.id,
+                    firstName: user.first_name,
+                    lastName: user.last_name,
+                    friendsCount: extendedFriends[index].count
+                }));
+
+                // Находим максимальное значение
+                const maxFriend = friendsData.reduce((prev, current) =>
+                    (prev.friendsCount > current.friendsCount) ? prev : current
+                );
+
+                // Форматируем результат
+                const result = `Аккаунт с максимальным количеством друзей:
+        ID: ${maxFriend.id}
+        Имя Фамилия: ${maxFriend.firstName} ${maxFriend.lastName}
+        Количество друзей: ${maxFriend.friendsCount}`;
+
+                showResult(result);
+
+            } catch (e) {
+                showResult(`Ошибка: ${e.message}`, true);
+            }
+        }
+
+        // 5. Последний пост в ленте
+        async function getLastPost() {
+            try {
+                const feed = await vkApiCall('newsfeed.get', {
+                    filters: 'post',
+                    count: 1
+                });
+
+                const post = feed.items[0];
+                let names = [];
+
+                if (post.source_id > 0) {
+                    const friends = await vkApiCall('friends.get', {
+                        user_id: post.source_id,
+                        fields: 'first_name,last_name'
+                    });
+                    names = friends.items.map(u => `${u.first_name} ${u.last_name}`);
+                } else {
+                    const [group] = await vkApiCall('groups.getById',{
+                        group_id: -post.source_id
+                    });
+                    authorInfo = `Группа: ${group.name}\n\n`;
+
+                    const members = await vkApiCall('groups.getMembers', {
+                        group_id: -post.source_id,
+                        fields: 'first_name,last_name',
+                        count: limit
+                    });
+                    names = members.items.map(u => `${u.first_name} ${u.last_name}`);
+                }
+
+                showResult(`${authorInfo}Имена:\n${names.join('\n')}`);
+            } catch (e) {
+                showResult(`Ошибка: ${e.message}`, true);
+            }
+        }
+
+        async function vkApiCall(method, params = {}) {
+            const url = new URL(`https://api.vk.com/method/${method}`);
+            params.access_token = ACCESS_TOKEN;
+            params.v = API_VERSION;
+
+            Object.entries(params).forEach(([key, value]) =>
+                url.searchParams.append(key, value)
+            );
+
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (data.error) throw new Error(data.error.error_msg);
+            return data.response;
+        }
+    </script>
+</head>
+<body>
+    <div class="control-panel">
+        <h2 align="center">Лабораторная работа 6</h2>
+        <div class="limit-group">
+            <label>Лимит записей:
+                <input type="number" id="limitInput" value="5" min="1" onchange="setLimit()">
+            </label>
+        </div>
+        <div class="btn-group">
+            <button onclick="getGroupFriends()">1. Друзья участников группы</button>
+            <button onclick="likeTopPosts()">2. Лайки последним онлайн</button>
+            <button onclick="createGroupsPost()">3. Пост с группами</button>
+            <button onclick="findMaxFriends()">4. Максимум друзей</button>
+            <button onclick="getLastPost()">5. Инфо о последнем посте</button>
+        </div>
+        <div class="result-container" id="resultContainer">
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Лаба 4</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 30px auto;
+      padding: 20px;
+      background-color: #f8f9fa;
+    }
+    .control-panel {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #2d3436;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .input-group {
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    .input-group label {
+      flex: 0 0 280px;
+      text-align: right;
+      white-space: nowrap;
+      color: #444;
+      font-weight: 500;
+    }
+    input[type="text"],
+    select {
+      flex: 1;
+      max-width: inherit;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 16px;
+      transition: border-color 0.3s ease;
+    }
+    input[type="text"]:focus,
+    select:focus {
+      border-color: #0077ff;
+      outline: none;
+    }
+    #extraFields {
+      margin: 20px 0;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+    #executeAction {
+      width: 100%;
+      padding: 15px;
+      background: #0077ff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    #executeAction:hover {
+      background: #0055cc;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    #responseContainer {
+      margin-top: 25px;
+      padding: 20px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    pre {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 6px;
+      border: 1px solid #eee;
+    }
+  </style>
+</head>
+<body>
+  <div class="control-panel">
+    <h1>Лабораторная работа 4</h1>
+
+    <div class="input-group">
+      <label for="accountId">ID аккаунта:</label>
+      <input type="text" id="accountId" placeholder="Введите ID аккаунта">
+    </div>
+
+    <div class="input-group">
+      <label for="actionSelect">Выберите действие:</label>
+      <select id="actionSelect">
+        <option value="post">Оставить пост на стене (видно только друзьям)</option>
+        <option value="comment">Оставить комментарий под постом</option>
+        <option value="status">Изменить статус страницы</option>
+        <option value="like">Лайкнуть пост</option>
+        <option value="get_posts">Показать ID последних 5 постов</option>
+      </select>
+    </div>
+
+    <div id="extraFields"></div>
+
+    <button id="executeAction">Выполнить действие</button>
+
+    <div id="responseContainer"></div>
+  </div>
+
+  <script>
+    const accessToken = "vk1.a.uSumW1VSEaojlYMYVZDTK7QSgwQMiBuA2v99dIc3z1PaT4y4eYViA7KIUGVGeWv3L8XagvdbyhIOwJXTaEQ5pERicFX1HY_2hBoAedK9L6S9k9YVktDrKEMNFnXbUdCCfT-98GBz8NH0GIqj-qD4WZ1DL_o8EeR-16PGmPYWobdtRebZ1F-sXsmFsL-9rw9PTRjDb2I7mqquVJLlh6IMbg";
+    const apiVersion = "5.119";
+
+    const actionSelect = $('#actionSelect');
+    const extraFieldsDiv = $('#extraFields');
+    const responseContainer = $('#responseContainer');
+
+    function renderExtraFields() {
+      const action = actionSelect.val();
+      let html = '';
+
+      const createField = (labelText, inputId, placeholder) => `
+        <div class="input-group">
+          <label for="${inputId}">${labelText}</label>
+          <input type="text" id="${inputId}" placeholder="${placeholder}">
+        </div>
+      `;
+
+      if (action === 'post') {
+        html += createField('Текст поста:', 'postMessage', 'Введите текст поста');
+      } else if (action === 'comment') {
+        html += createField('ID поста:', 'postId', 'Введите ID поста');
+        html += createField('Текст комментария:', 'commentText', 'Введите текст комментария');
+      } else if (action === 'status') {
+        html += createField('Новый статус:', 'statusText', 'Введите новый статус');
+      } else if (action === 'like') {
+        html += createField('ID поста:', 'likePostId', 'Введите ID поста');
+      } else if (action === 'get_posts') {
+        html += createField('Домен пользователя', 'domain', 'Введите домен пользователя');
+      }
+      extraFieldsDiv.html(html);
+    }
+
+    renderExtraFields();
+    actionSelect.on('change', renderExtraFields);
+
+    $('#executeAction').on('click', function() {
+      const action = actionSelect.val();
+      const accountId = $('#accountId').val().trim();
+      let url = '';
+
+      if (action === 'post') {
+        const postMessage = $('#postMessage').val().trim();
+        url = `https://api.vk.com/method/wall.post?access_token=${accessToken}&v=${apiVersion}&message=${encodeURIComponent(postMessage)}&friends_only=1`;
+        if (accountId) url += `&owner_id=${accountId}`;
+      } else if (action === 'comment') {
+        const postId = $('#postId').val().trim();
+        const commentText = $('#commentText').val().trim();
+        url = `https://api.vk.com/method/wall.createComment?access_token=${accessToken}&v=${apiVersion}&post_id=${postId}&message=${encodeURIComponent(commentText)}`;
+        if (accountId) url += `&owner_id=${accountId}`;
+      } else if (action === 'status') {
+        const statusText = $('#statusText').val().trim();
+        url = `https://api.vk.com/method/status.set?access_token=${accessToken}&v=${apiVersion}&text=${encodeURIComponent(statusText)}`;
+      } else if (action === 'like') {
+        const likePostId = $('#likePostId').val().trim();
+        url = `https://api.vk.com/method/likes.add?access_token=${accessToken}&v=${apiVersion}&type=post&item_id=${likePostId}`;
+        if (accountId) url += `&owner_id=${accountId}`;
+      } else if (action === 'get_posts') {
+        const domain = $('#domain').val().trim();
+        url = `https://api.vk.com/method/wall.get?access_token=${accessToken}&v=${apiVersion}&domain=${domain}&count=5&filter=5`;
+      }
+
+      $.getJSON(url, function(data) {
+        console.log("Задача выполнена успешно!", data.response);
+        responseContainer.html('<pre>' + JSON.stringify(data, null, 2) + '</pre>');
+      }).fail(function(jqXHR, textStatus, errorThrown) {
+        console.error("Ошибка выполнения!", textStatus, errorThrown);
+        responseContainer.html('<pre>Ошибка выполнения: ' + textStatus + '</pre>');
+      });
+    });
+  </script>
+</body>
+</html>

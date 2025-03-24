@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Выбор раздела</title>
+    <script>
+        function loadXML() {
+            const xhr = new XMLHttpRequest();
+            xhr.open("GET", "../lab_1/a.xml", true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    parseXML(xhr.responseXML);
+                }
+            };
+            xhr.send();
+        }
+
+        function parseXML(xml) {
+            const container = document.getElementById("output");
+            container.innerHTML = "";
+            const sectionNumber = document.getElementById("sectionInput").value;
+
+            const sections = Array.from(xml.documentElement.children)
+                .filter(child => child.tagName !== 'header');
+
+            if (Math.abs(sectionNumber) >= sections.length) {
+                container.textContent = `Недопустимый номер. Введите от -${sections.length - 1} до ${sections.length - 1}`;
+                return;
+            }
+            const selectedSection = sections[Math.abs(sectionNumber)];
+            const sectionChildren = Array.from(selectedSection.children);
+
+            const childrenToIterate = sectionNumber < 0 ? sectionChildren.reverse() : sectionChildren;
+
+            childrenToIterate.forEach(item => {
+                const itemChildren = Array.from(item.children);
+                const childrenToProcess = sectionNumber < 0 ? itemChildren : itemChildren;
+
+                childrenToProcess.forEach(child => {
+                    const p = document.createElement("p");
+                    p.textContent = `${child.tagName}: ${child.textContent}`;
+                    container.appendChild(p);
+                });
+            });
+
+
+        }
+    </script>
+</head>
+<body onload="loadXML()">
+    <h1>Выбор раздела второго уровня</h1>
+    <label>
+        Номер раздела (-2 до 2):
+        <input type="number" id="sectionInput" min="-2" max="2" value="0">
+    </label>
+    <button onclick="loadXML()">Показать</button>
+    <div id="output"></div>
+</body>
+</html>

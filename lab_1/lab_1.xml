@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/css" href="lab_1_styles.css"?>
+<library>
+    <header>
+        <title>Каталог библиотеки</title>
+    </header>
+
+    <books>
+        <book>
+            <title>Война и мир</title>
+            <author>Лев Толстой</author>
+            <year>1869</year>
+        </book>
+        <book>
+            <title>Преступление и наказание</title>
+            <author>Фёдор Достоевский</author>
+            <year>1866</year>
+        </book>
+    </books>
+
+    <magazines>
+        <magazine>
+            <title>Наука и жизнь</title>
+            <issue>20.01.2023</issue>
+            <publisher>Издательство "Знание"</publisher>
+        </magazine>
+        <magazine>
+            <title>Вокруг света</title>
+            <issue>01.02.2023</issue>
+            <publisher>Издательство "География"</publisher>
+        </magazine>
+    </magazines>
+
+    <newspapers>
+        <newspaper>
+            <title>Известия</title>
+            <date>16.02.2024</date>
+            <editor>Иван Иванов</editor>
+        </newspaper>
+        <newspaper>
+            <title>Коммерсантъ</title>
+            <date>15.02.2024</date>
+            <editor>Петр Петров</editor>
+        </newspaper>
+    </newspapers>
+</library>
