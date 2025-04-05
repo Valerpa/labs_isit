@@ -2,9 +2,9 @@ import os
 import requests
 import telebot
 
-TELEGRAM_TOKEN = "7396647884:AAGoK-ZPrjz5AWQHUSFDBj3gsvz9MH6Wa9g"
+TELEGRAM_TOKEN = ""
 
-VK_ACCESS_TOKEN = "vk1.a.GcX22vqgf_7axG3HbISzovKtKspTgCwGGR8qXvjTZwNfdgo7dxtT2q5yeh1BuQlkn_yA470mYmVUZiREIJxiYTDjlw-rs6CHfks8pHwzMtaQ76oVHJnEWwHpQYZmiHdhgKuuo-2DaxnI4HhsI0HdBYm2n9LgScB0iY0ccRr2s-N938oGlO5HqLAzH70ewm7X6EcKTlM75hsoc3khc5PgPQ"
+VK_ACCESS_TOKEN = ""
 VK_API_VERSION = '5.119'
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN)

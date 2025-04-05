@@ -3,7 +3,7 @@ import os
 import telebot
 from telebot import types
 
-TOKEN = '7857195127:AAGTRF7NNXkYnc7vsCTMuwz9S9waeCKvPAI'
+TOKEN = ''
 bot = telebot.TeleBot(token=TOKEN)
 
 BACK_TO_MAIN = "Назад в главное меню"

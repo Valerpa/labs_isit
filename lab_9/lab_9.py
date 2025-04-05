@@ -3,7 +3,7 @@ import telebot
 from telebot import types
 import json
 
-TOKEN = "8014946486:AAGdWdWrvnTOzZS4Wu8KQh82c6AiT79PYSQ"
+TOKEN = ""
 bot = telebot.TeleBot(token=TOKEN)
 
 COUNTS_FILE = "reaction_counts.json"
